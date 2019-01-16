@@ -19,10 +19,14 @@ package io.netty.channel;
 import io.netty.util.internal.StringUtil;
 
 /**
+ * 实现ChannelFactory接口，反射调用默认构造方法，创建Channel对象的工厂实现类
  * A {@link ChannelFactory} that instantiates a new {@link Channel} by invoking its default constructor reflectively.
  */
 public class ReflectiveChannelFactory<T extends Channel> implements ChannelFactory<T> {
 
+    /**
+     *  Channel对应的类
+     */
     private final Class<? extends T> clazz;
 
     public ReflectiveChannelFactory(Class<? extends T> clazz) {
@@ -32,9 +36,14 @@ public class ReflectiveChannelFactory<T extends Channel> implements ChannelFacto
         this.clazz = clazz;
     }
 
+    /**
+     * FIXME 重点关注代码块 clazz.getConstructor().newInstance()
+     * @return
+     */
     @Override
     public T newChannel() {
         try {
+            //反射调用默认构造方法，创建Channel对象
             return clazz.getConstructor().newInstance();
         } catch (Throwable t) {
             throw new ChannelException("Unable to create Channel from class " + clazz, t);

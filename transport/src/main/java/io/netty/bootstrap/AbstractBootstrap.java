@@ -46,15 +46,40 @@ import java.util.Map;
  *
  * <p>When not used in a {@link ServerBootstrap} context, the {@link #bind()} methods are useful for connectionless
  * transports such as datagram (UDP).</p>
+ *   泛型 B: 继承AbstractBootstrap类，表示AbstractBootstrap自身
+ *   泛型 C: 继承Channel类，表示创建的Channel类型
  */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
 
+    /**
+     * EventLoopGroup 对象
+     */
     volatile EventLoopGroup group;
+
+    /**
+     * Channel工厂， 用于创建Channel对象
+     */
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
+
+    /**
+     * 本地地址
+     */
     private volatile SocketAddress localAddress;
+
+    /**
+     * 可选项集合
+     */
     private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
+
+    /**
+     * 属性集合
+     */
     private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<AttributeKey<?>, Object>();
+
+    /**
+     * 处理器
+     */
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
@@ -66,10 +91,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         channelFactory = bootstrap.channelFactory;
         handler = bootstrap.handler;
         localAddress = bootstrap.localAddress;
-        synchronized (bootstrap.options) {
+        synchronized (bootstrap.options) { //
             options.putAll(bootstrap.options);
         }
-        synchronized (bootstrap.attrs) {
+        synchronized (bootstrap.attrs) { //
             attrs.putAll(bootstrap.attrs);
         }
     }
@@ -77,18 +102,24 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * The {@link EventLoopGroup} which is used to handle all the events for the to-be-created
      * {@link Channel}
+     *
+     * 设置EventLoopGroup到group中
      */
     public B group(EventLoopGroup group) {
         if (group == null) {
             throw new NullPointerException("group");
         }
-        if (this.group != null) {
+        if (this.group != null) { //不允许重复设置
             throw new IllegalStateException("group set already");
         }
         this.group = group;
         return self();
     }
 
+    /**
+     * 返回自己
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private B self() {
         return (B) this;
@@ -98,6 +129,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
+     *
+     *  设置要被实例化的Channel类
      */
     public B channel(Class<? extends C> channelClass) {
         if (channelClass == null) {
@@ -135,6 +168,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 设置创建Channel的本地地址。有四个重载方法，
+     * 一般情况下，不会调用该方法进行配置，而是调用#bind(...)方法
      * The {@link SocketAddress} which is used to bind the local "end" to.
      */
     public B localAddress(SocketAddress localAddress) {
@@ -166,16 +201,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they got
      * created. Use a value of {@code null} to remove a previous set {@link ChannelOption}.
+     *
+     * 设置创建Channel的可选项
      */
     public <T> B option(ChannelOption<T> option, T value) {
         if (option == null) {
             throw new NullPointerException("option");
         }
-        if (value == null) {
+        if (value == null) { //空，移除
             synchronized (options) {
                 options.remove(option);
             }
-        } else {
+        } else { //非空，进行修改
             synchronized (options) {
                 options.put(option, value);
             }
@@ -186,6 +223,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Allow to specify an initial attribute of the newly created {@link Channel}.  If the {@code value} is
      * {@code null}, the attribute of the specified {@code key} is removed.
+     *
+     * 设置创建Channel属性，
+     * attr 可以理解成 java.nio.channels.SelectionKey的attachment属性，并且类型为Map
      */
     public <T> B attr(AttributeKey<T> key, T value) {
         if (key == null) {
@@ -206,6 +246,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Validate all the parameters. Sub-classes may override this, but should
      * call the super method in that case.
+     *
+     * 校验配置是否正确，
+     * 在#bind(...)方法中,绑定本地地址是，会调用该方法进行校验
      */
     public B validate() {
         if (group == null) {
@@ -221,6 +264,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Returns a deep clone of this bootstrap which has the identical configuration.  This method is useful when making
      * multiple {@link Channel}s with similar settings.  Please note that this method does not clone the
      * {@link EventLoopGroup} deeply but shallowly, making the group a shared resource.
+     *
+     * 克隆一个AbstractBootstrap对象，来自Cloneable接口，在子类中实现。
+     * 这是深拷贝，即创建一个新对象，但不是所有的属性是深拷贝。
+     *     浅拷贝属性：group、channelFactory、handler、localAddress。
+     *     深拷贝属性：options
      */
     @Override
     @SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
@@ -373,6 +421,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * the {@link ChannelHandler} to use for serving the requests.
+     *
+     * 设置Channel的处理器
      */
     public B handler(ChannelHandler handler) {
         if (handler == null) {
@@ -395,6 +445,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Returns the {@link AbstractBootstrapConfig} object that can be used to obtain the current config
      * of the bootstrap.
+     *
+     * 返回当前AbstractBootstrap的配置对象
      */
     public abstract AbstractBootstrapConfig<B, C> config();
 
