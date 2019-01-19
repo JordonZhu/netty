@@ -331,12 +331,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        //初始化并注册一个Channel对象，因为注册是异步的过程，所以返回一个ChannelFuture对象。
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
-        if (regFuture.cause() != null) {
+        if (regFuture.cause() != null) { //若发生异常，这几进行返回
             return regFuture;
         }
 
+        //绑定Channel的端口，并注册Channel到SelectionKey中
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
@@ -366,15 +368,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    //初始化并注册一个Channel对象，并返回一个ChannelFuture对象
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            //创建Channel对象
             channel = channelFactory.newChannel();
+            //初始化Channel 配置
             init(channel);
         } catch (Throwable t) {
-            if (channel != null) {
+            if (channel != null) { //已创建Channel对象
                 // channel can be null if newChannel crashed (eg SocketException("too many open files"))
-                channel.unsafe().closeForcibly();
+                channel.unsafe().closeForcibly(); //强制关闭Channel
                 // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
                 return new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE).setFailure(t);
             }
@@ -382,12 +387,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        //注册Channel到EventLoopGroup中
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
                 channel.close();
             } else {
-                channel.unsafe().closeForcibly();
+                channel.unsafe().closeForcibly(); //强制关闭 channel
             }
         }
 
@@ -414,9 +420,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
-                if (regFuture.isSuccess()) {
+                if (regFuture.isSuccess()) {//注册成功，绑定端口
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
-                } else {
+                } else { //注册失败，回调通知promise异常
                     promise.setFailure(regFuture.cause());
                 }
             }
