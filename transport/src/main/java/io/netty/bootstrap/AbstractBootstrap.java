@@ -291,6 +291,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (localAddress == null) {
             throw new IllegalStateException("localAddress not set");
         }
+        //绑定本地地址（包括端口）
         return doBind(localAddress);
     }
 
@@ -317,12 +318,15 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and bind it.
+     * 异步绑定端口，同步需要调用方法 ChannelFuture#sync()方法
      */
     public ChannelFuture bind(SocketAddress localAddress) {
+        //校验服务启动需要的必要参数
         validate();
         if (localAddress == null) {
             throw new NullPointerException("localAddress");
         }
+        //绑定本地地址（包括端口）
         return doBind(localAddress);
     }
 
@@ -490,6 +494,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return copiedMap(attrs);
     }
 
+    /**
+     * 设置传入的Channel的多个可选项
+     *  option 是设置要创建的Channel的可选项
+     *  setChannelOption(...)方法，是设置已经创建的Channel的可选项
+     * @param channel
+     * @param options
+     * @param logger
+     */
     static void setChannelOptions(
             Channel channel, Map<ChannelOption<?>, Object> options, InternalLogger logger) {
         for (Map.Entry<ChannelOption<?>, Object> e: options.entrySet()) {

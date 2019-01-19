@@ -28,6 +28,10 @@ import java.util.Map;
 
 /**
  * Exposes the configuration of an {@link AbstractBootstrap}.
+ *
+ * bootstrap属性，对应启动类对象
+ *  1.，每一个config类对应一个Bootstrap类
+ *  2. ServerBootstrapConfig和BootstrapConfig的实现代码，AbstractBootstrapConfig基本一致
  */
 public abstract class AbstractBootstrapConfig<B extends AbstractBootstrap<B, C>, C extends Channel> {
 
