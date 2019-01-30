@@ -538,6 +538,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
+            //判断是否在EventLoop的线程中
             assertEventLoop();
 
             if (!promise.setUncancellable() || !ensureOpen(promise)) {
@@ -557,15 +558,19 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         "address (" + localAddress + ") anyway as requested.");
             }
 
+            // 记录 Channel是否激活
             boolean wasActive = isActive();
+
+            // 绑定 Channel的端口
             try {
-                doBind(localAddress);
+                doBind(localAddress);  //此处，服务端的java原生NIO ServerSocketChannel终于绑定端口
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
                 closeIfClosed();
                 return;
             }
 
+            //如Channel是新激活的，触发通知Channel已激活的事件
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override
@@ -575,6 +580,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 });
             }
 
+            //回调通知 promise  执行成功
             safeSetSuccess(promise);
         }
 
@@ -841,12 +847,15 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void beginRead() {
+            //判断是否在 EventLoop 的线程中
             assertEventLoop();
 
+            //Channel 必须激活
             if (!isActive()) {
                 return;
             }
 
+            //执行并开始读取
             try {
                 doBeginRead();
             } catch (final Exception e) {
@@ -1003,9 +1012,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         private void invokeLater(Runnable task) {
             try {
                 // This method is used by outbound operation implementations to trigger an inbound event later.
+                // 出站操作该方法，实现对入站事件后的触发
                 // They do not trigger an inbound event immediately because an outbound operation might have been
                 // triggered by another inbound event handler method.  If fired immediately, the call stack
                 // will look like this for example:
+                // 它们不会立即触发入站事件，因为出站操作可能已由另一个入站事件处理程序方法触发。 如果立即触发，
+                // 则调用堆栈调用堆栈将如下所示
                 //
                 //   handlerA.inboundBufferUpdated() - (1) an inbound handler method closes a connection.
                 //   -> handlerA.ctx.close()
@@ -1013,6 +1025,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 //         -> handlerA.channelInactive() - (2) another inbound handler method called while in (1) yet
                 //
                 // which means the execution of two inbound handler methods of the same handler overlap undesirably.
+                // 这意味着同一处理程序的两个入站处理程序方法的执行不合需要地重叠。
                 eventLoop().execute(task);
             } catch (RejectedExecutionException e) {
                 logger.warn("Can't invoke task later as EventLoop rejected it", e);
