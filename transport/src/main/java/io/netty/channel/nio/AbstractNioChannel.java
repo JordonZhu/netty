@@ -82,10 +82,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
-        this.ch = ch;
+        this.ch = ch; //Netty NIO Channel对象，持有的java原生NIO的Channel对象
         this.readInterestOp = readInterestOp;
         try {
-            ch.configureBlocking(false);
+            ch.configureBlocking(false); //设置NIO Channel为非阻塞
         } catch (IOException e) {
             try {
                 ch.close();

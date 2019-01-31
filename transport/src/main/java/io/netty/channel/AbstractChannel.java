@@ -55,9 +55,21 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     private static final NotYetConnectedException FLUSH0_NOT_YET_CONNECTED_EXCEPTION = ThrowableUtil.unknownStackTrace(
             new NotYetConnectedException(), AbstractUnsafe.class, "flush0()");
 
+    /**
+     * 父 channel对象
+     */
     private final Channel parent;
+    /**
+     * channel 编号
+     */
     private final ChannelId id;
+    /**
+     * unsafe 对象
+     */
     private final Unsafe unsafe;
+    /**
+     * DefaultChannelPipeline 对象
+     */
     private final DefaultChannelPipeline pipeline;
     private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
     private final CloseFuture closeFuture = new CloseFuture(this);
@@ -79,9 +91,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      *        the parent of this channel. {@code null} if there's no parent.
      */
     protected AbstractChannel(Channel parent) {
-        this.parent = parent;
+        this.parent = parent; //父channel对象，对NIOServerSocketChannel的parent为空
+        //创建ChannelId对象
         id = newId();
+        //创建Unsafe对象
         unsafe = newUnsafe();
+        //创建DefaultChannelPipeline对象
         pipeline = newChannelPipeline();
     }
 
@@ -461,21 +476,28 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
+            //校验传入的eventLoop 非空
             if (eventLoop == null) {
                 throw new NullPointerException("eventLoop");
             }
+
+            //校验未注册
             if (isRegistered()) {
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
             }
+
+            //校验Channel 和 eventLoop匹配
             if (!isCompatible(eventLoop)) {
                 promise.setFailure(
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
                 return;
             }
 
+            //设置channel的eventLoop属性
             AbstractChannel.this.eventLoop = eventLoop;
 
+            //在EventLoop中执行注册逻辑
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
@@ -504,17 +526,28 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 if (!promise.setUncancellable() || !ensureOpen(promise)) {
                     return;
                 }
+                //记录是否为首次注册
                 boolean firstRegistration = neverRegistered;
+
+                //执行注册逻辑
                 doRegister();
+
+                //标记首次注册为false
                 neverRegistered = false;
+                //标记Channel为已注册
                 registered = true;
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                //回调通知`promise`执行成功
                 safeSetSuccess(promise);
+
+                //触发通知已注册事件
                 pipeline.fireChannelRegistered();
+
+
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
                 if (isActive()) {
