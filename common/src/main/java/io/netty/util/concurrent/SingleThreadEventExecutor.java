@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * Abstract base class for {@link OrderedEventExecutor}'s that execute all its submitted tasks in a single thread.
- *
+ * 基于单线程的EventExecutor抽象类，即一个EventExecutor对应一个线程
  */
 public abstract class SingleThreadEventExecutor extends AbstractScheduledEventExecutor implements OrderedEventExecutor {
 
@@ -73,35 +73,97 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     };
 
+    /**
+     * {@link #state} 字段的原子更新器
+     */
     private static final AtomicIntegerFieldUpdater<SingleThreadEventExecutor> STATE_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(SingleThreadEventExecutor.class, "state");
+
+    /**
+     * (@link #thread) 字段的原子更新器
+     */
     private static final AtomicReferenceFieldUpdater<SingleThreadEventExecutor, ThreadProperties> PROPERTIES_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
 
+    /**
+     * 任务队列
+     * @see #newTaskQueue(int)
+     */
     private final Queue<Runnable> taskQueue;
 
+    /**
+     * 线程
+     */
     private volatile Thread thread;
+
+    /**
+     * 线程属性
+     */
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
+    /**
+     * 执行器
+     */
     private final Executor executor;
+    /**
+     * 线程是否已经打断
+     *
+     * @see #interruptThread()
+     */
     private volatile boolean interrupted;
 
+    /**
+     * TODO 1006 EventLoop 优雅关闭
+     */
     private final Semaphore threadLock = new Semaphore(0);
+    /**
+     * TODO 1006 EventLoop 优雅关闭
+     */
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
+    /**
+     * 添加任务时，是否唤醒线程{@link #thread}
+     */
     private final boolean addTaskWakesUp;
+    /**
+     * 最大等待执行任务数量，即{@link #taskQueue}d的队列大小
+     */
     private final int maxPendingTasks;
+    /**
+     * 拒绝执行处理器
+     *
+     * @see #reject()
+     * @see #reject(Runnable)
+     */
     private final RejectedExecutionHandler rejectedExecutionHandler;
 
+    /**
+     * 最后执行时间
+     */
     private long lastExecutionTime;
 
+    /**
+     * 状态
+     */
     @SuppressWarnings({ "FieldMayBeFinal", "unused" })
     private volatile int state = ST_NOT_STARTED;
 
+    /**
+     * TODO 优雅关闭
+     */
     private volatile long gracefulShutdownQuietPeriod;
+    /**
+     * 优雅关闭超时时间，单位：毫秒 TODO 1006 EventLoop 优雅关闭
+     */
     private volatile long gracefulShutdownTimeout;
+    /**
+     * 优雅关闭开始时间，单位：毫秒 TODO 1006 EventLoop 优雅关闭
+     */
     private long gracefulShutdownStartTime;
 
+    /**
+     * TODO 1006 EventLoop 优雅关闭
+     */
     private final Promise<?> terminationFuture = new DefaultPromise<Void>(GlobalEventExecutor.INSTANCE);
 
     /**
@@ -179,6 +241,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * {@link LinkedBlockingQueue} but if your sub-class of {@link SingleThreadEventExecutor} will not do any blocking
      * calls on the this {@link Queue} it may make sense to {@code @Override} this and return some more performant
      * implementation that does not support blocking operations at all.
+     *
+     * 默认返回LinkedBlockingQueue阻塞队列。如果子类有更好的队列选择（例如非阻塞队列），
+     * 可以重写该方法
      */
     protected Queue<Runnable> newTaskQueue(int maxPendingTasks) {
         return new LinkedBlockingQueue<Runnable>(maxPendingTasks);
@@ -285,10 +350,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     /**
+     * 返回队头任务，但是不移除
      * @see Queue#peek()
      */
     protected Runnable peekTask() {
-        assert inEventLoop();
+        assert inEventLoop(); //仅允许在EventLoop线程中执行
         return taskQueue.peek();
     }
 
@@ -296,12 +362,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * @see Queue#isEmpty()
      */
     protected boolean hasTasks() {
-        assert inEventLoop();
+        assert inEventLoop();  //仅允许在。。。
         return !taskQueue.isEmpty();
     }
 
     /**
      * Return the number of tasks that are pending for processing.
+     * 获得队列中的任务数
      *
      * <strong>Be aware that this operation may be expensive as it depends on the internal implementation of the
      * SingleThreadEventExecutor. So use it with care!</strong>
@@ -323,10 +390,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     }
 
+    //添加任务到队列，失败返回false
     final boolean offerTask(Runnable task) {
+        //关闭是，拒绝任务
         if (isShutdown()) {
             reject();
         }
+        //添加任务到队列
         return taskQueue.offer(task);
     }
 
@@ -863,6 +933,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return true;
     }
 
+    //拒绝任何任务，用于SingleThreadEventExecutor已关闭
     protected static void reject() {
         throw new RejectedExecutionException("event executor terminated");
     }

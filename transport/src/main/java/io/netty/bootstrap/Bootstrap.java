@@ -50,13 +50,18 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Bootstrap.class);
 
+    //默认地址解析器对象
     private static final AddressResolverGroup<?> DEFAULT_RESOLVER = DefaultAddressResolverGroup.INSTANCE;
 
+    //启动类配置对象
     private final BootstrapConfig config = new BootstrapConfig(this);
 
+    //地址解析器对象
     @SuppressWarnings("unchecked")
     private volatile AddressResolverGroup<SocketAddress> resolver =
             (AddressResolverGroup<SocketAddress>) DEFAULT_RESOLVER;
+
+    //连接地址
     private volatile SocketAddress remoteAddress;
 
     public Bootstrap() { }
@@ -116,6 +121,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
             throw new IllegalStateException("remoteAddress not set");
         }
 
+        //解析远程地址，并进行连接
         return doResolveAndConnect(remoteAddress, config.localAddress());
     }
 
@@ -279,7 +285,9 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     @Override
     public Bootstrap validate() {
+        //父校验
         super.validate();
+        //handler 非空
         if (config.handler() == null) {
             throw new IllegalStateException("handler not set");
         }
