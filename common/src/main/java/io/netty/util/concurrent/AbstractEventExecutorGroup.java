@@ -27,6 +27,7 @@ import static io.netty.util.concurrent.AbstractEventExecutor.*;
 
 
 /**
+ *  实现EventExecutorGroup接口， EventExecutor(事件执行器)的分组抽象类
  * Abstract base class for {@link EventExecutorGroup} implementations.
  */
 public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
@@ -65,6 +66,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return next().scheduleWithFixedDelay(command, initialDelay, delay, unit);
     }
 
+    //关闭EventExecutorGroup
     @Override
     public Future<?> shutdownGracefully() {
         return shutdownGracefully(DEFAULT_SHUTDOWN_QUIET_PERIOD, DEFAULT_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
@@ -87,9 +89,12 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return Collections.emptyList();
     }
 
+    // 执行多个普通任务
     @Override
     public <T> List<java.util.concurrent.Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
             throws InterruptedException {
+
+        //执行的EventExecutor,通过#next()方法选择，并且，多个任务使用同一EventExecutor
         return next().invokeAll(tasks);
     }
 
@@ -99,6 +104,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return next().invokeAll(tasks, timeout, unit);
     }
 
+    //EventExecutor中执行多个普通任务，有一个执行完成即可
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return next().invokeAny(tasks);

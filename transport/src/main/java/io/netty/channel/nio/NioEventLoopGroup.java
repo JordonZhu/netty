@@ -94,6 +94,15 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
                 RejectedExecutionHandlers.reject());
     }
 
+    /**
+     *
+     * @param nThreads
+     * @param executor
+     * @param chooserFactory
+     * @param selectorProvider —— 用于创建java NIO Selector 对象
+     * @param selectStrategyFactory —— 选择策略工厂。详细解析，见后续文章
+     * @param rejectedExecutionHandler  —— 拒绝执行处理器，详细解析，见后续
+     */
     public NioEventLoopGroup(int nThreads, Executor executor, EventExecutorChooserFactory chooserFactory,
                              final SelectorProvider selectorProvider,
                              final SelectStrategyFactory selectStrategyFactory,
@@ -102,6 +111,8 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     }
 
     /**
+     * 设置所有EventLoop的IO任务占用执行时间的比例
+     *
      * Sets the percentage of the desired amount of time spent for I/O in the child event loops.  The default value is
      * {@code 50}, which means the event loop will try to spend the same amount of time for I/O as for non-I/O tasks.
      */
@@ -112,6 +123,8 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     }
 
     /**
+     * 重建所有EventLoop的Selector对象
+     *
      * Replaces the current {@link Selector}s of the child event loops with newly created {@link Selector}s to work
      * around the  infamous epoll 100% CPU bug.
      */

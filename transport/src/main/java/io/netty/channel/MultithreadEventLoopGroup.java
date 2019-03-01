@@ -27,6 +27,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
 /**
+ * 基于多线程的EventLoop分组抽象类
  * Abstract base class for {@link EventLoopGroup} implementations that handles their tasks with multiple threads at
  * the same time.
  */
@@ -34,10 +35,11 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MultithreadEventLoopGroup.class);
 
+    // 默认 EventLoop 线程数
     private static final int DEFAULT_EVENT_LOOP_THREADS;
 
     static {
-        DEFAULT_EVENT_LOOP_THREADS = Math.max(1, SystemPropertyUtil.getInt(
+        DEFAULT_EVENT_LOOP_THREADS = Math.max(1, SystemPropertyUtil.getInt(     //一个cpu对应两个EventLoop ,因为一个EventLoop占一个线程
                 "io.netty.eventLoopThreads", NettyRuntime.availableProcessors() * 2));
 
         if (logger.isDebugEnabled()) {
@@ -78,6 +80,7 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
         return (EventLoop) super.next();
     }
 
+    //重写父类方法
     @Override
     protected abstract EventLoop newChild(Executor executor, Object... args) throws Exception;
 

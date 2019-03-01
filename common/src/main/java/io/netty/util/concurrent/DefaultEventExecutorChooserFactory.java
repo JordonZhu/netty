@@ -25,6 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @UnstableApi
 public final class DefaultEventExecutorChooserFactory implements EventExecutorChooserFactory {
 
+    /**
+     * 单例
+     */
     public static final DefaultEventExecutorChooserFactory INSTANCE = new DefaultEventExecutorChooserFactory();
 
     private DefaultEventExecutorChooserFactory() { }
@@ -32,7 +35,7 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     @SuppressWarnings("unchecked")
     @Override
     public EventExecutorChooser newChooser(EventExecutor[] executors) {
-        if (isPowerOfTwo(executors.length)) {
+        if (isPowerOfTwo(executors.length)) { //是否为 2 的幂次方
             return new PowerOfTwoEventExecutorChooser(executors);
         } else {
             return new GenericEventExecutorChooser(executors);
@@ -40,9 +43,18 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     }
 
     private static boolean isPowerOfTwo(int val) {
+
+        /*
+            16 举例
+            # 16 的二进制 10000
+            # -16 的二进制使用补码表示，所以先求反生成反码01111，然后加一生成补码 10000
+            # 16 并 -16 并操作后，还是16
+            # 实际上，以2为幂次方的数字，都是最高为1，剩余位为0，所以对应的负数，求完补码后还是自己
+         */
         return (val & -val) == val;
     }
 
+    // 基于EventExecutor数组的大小为2的幂次方的EventExecutor选择器实现类。
     private static final class PowerOfTwoEventExecutorChooser implements EventExecutorChooser {
         private final AtomicInteger idx = new AtomicInteger();
         private final EventExecutor[] executors;
@@ -58,7 +70,13 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     }
 
     private static final class GenericEventExecutorChooser implements EventExecutorChooser {
+        /**
+         * 自增序列
+         */
         private final AtomicInteger idx = new AtomicInteger();
+        /**
+         * EventExecutor 数组
+         */
         private final EventExecutor[] executors;
 
         GenericEventExecutorChooser(EventExecutor[] executors) {

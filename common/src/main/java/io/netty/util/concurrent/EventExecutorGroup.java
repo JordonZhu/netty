@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
  */
 public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<EventExecutor> {
 
+    //========== 自定义接口 ==========
+
     /**
      * Returns {@code true} if and only if all {@link EventExecutor}s managed by this {@link EventExecutorGroup}
      * are being {@linkplain #shutdownGracefully() shut down gracefully} or was {@linkplain #isShutdown() shut down}.
@@ -80,12 +82,17 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     List<Runnable> shutdownNow();
 
     /**
+     * 选择一个EventExcutor 对象
      * Returns one of the {@link EventExecutor}s managed by this {@link EventExecutorGroup}.
      */
     EventExecutor next();
 
+    //=============== 实现自 Iterable接口 ===========
+
     @Override
     Iterator<EventExecutor> iterator();
+
+    //=============== 实现ExecutorService 接口 =========
 
     @Override
     Future<?> submit(Runnable task);
@@ -96,6 +103,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     @Override
     <T> Future<T> submit(Callable<T> task);
 
+    // ======== 实现自 ScheduledExecutorService 接口 =======
     @Override
     ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit);
 
